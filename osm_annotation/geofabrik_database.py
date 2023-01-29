@@ -4,26 +4,28 @@ import time
 from glob import glob
 import requests
 import zipfile
+import shutil
 from tqdm import tqdm
 
 import pandas as pd
 import geopandas as gpd
 import shapely
 import warnings
-warnings.filterwarnings("ignore")
 
+warnings.filterwarnings("ignore")
 
 """
 global variables
 """
-
-label_map_path = "./osm_label_hierarchy.csv"
-base_url = "http://download.geofabrik.de/north-america/us/"
+# user settings
 update_shapefiles = False  # if True, redownload shapefiles from Geofabrik to update the current databases.
-
+# update_reorganize_shapefiles = False  # if True, redo the process of reorganizing shapefiles downloaded from Geofabrik.
+label_map_path = "./osm_label_hierarchy.csv"
 state_string = "alabama, alaska, arizona, arkansas, norcal, socal, colorado, connecticut, delaware, district of columbia, florida, georgia, hawaii, idaho, illinois, indiana, iowa, kansas, kentucky, louisiana, maine, maryland, massachusetts, michigan, minnesota, mississippi, missouri, montana, nebraska, nevada, new hampshire, new jersey, new mexico, new york, north carolina, north dakota, ohio, oklahoma, oregon, pennsylvania, puerto rico, rhode island, south carolina, south dakota, tennessee, texas, united states virgin islands, utah, vermont, virginia, washington, west virginia, wisconsin, wyoming"
 state_list = state_string.split(", ")
 
+# OSM related
+base_url = "http://download.geofabrik.de/north-america/us/"
 layers = ["buildings", "landuse", "natural", "places", "pofw", "pois", "railways", "roads", "traffic", "transport",
           "water", "waterways"]
 
@@ -65,7 +67,7 @@ def _download_and_unzip(download_folder_path, unzipped_folder_path):
     """
     start = time.time()
     print("======================================================================================================")
-    print("Start (this may take 20 minutes)")
+    print("Start (this process may take about 20 minutes)")
     print("   1. downloading Geofabrik data for all states to {}".format(download_folder_path))
     print("   2. unzipping Geofabrik data for all states to {}".format(unzipped_folder_path))
 
@@ -75,10 +77,10 @@ def _download_and_unzip(download_folder_path, unzipped_folder_path):
         print(state)
         # update
         zip_to_path = os.path.join(unzipped_folder_path, state)
-        if not update_shapefiles:  # skip state if unzipped file exists
-            if os.path.exists(zip_to_path):
-                print("    " + "skip because unzipped file exists")
-                continue
+
+        if os.path.exists(zip_to_path):
+            print("    " + "skip because unzipped file exists")
+            continue
 
         # download
         url = _get_shp_file_link(state)
@@ -175,9 +177,9 @@ def _extract_all_landmarks_from_shapefile(label_map, organized_data_folder_path,
                 lvl3_path = lvl2_path + os.sep + lvl3_label
                 lvl3_file_name = "_".join([lvl3_label, state, layer, shpfile_num, category + ".shp"])
                 lvl3_file_path = os.path.join(lvl3_path, lvl3_file_name)
-                if not update_shapefiles:
-                    if os.path.exists(lvl3_file_path):
-                        continue
+
+                if os.path.exists(lvl3_file_path):
+                    continue
                 _create_folder(lvl3_path)
                 synonyms = label_map_lvl2[lvl3_label]
                 labels = [x for x in synonyms]
@@ -213,6 +215,22 @@ def _get_poi_inclusion_stats(label_count_dict):
     return
 
 
+def _determine_state_in_last_run(organized_data_folder_path):
+    processed_state_set = set()
+    for osm_file_path in glob(os.path.join(organized_data_folder_path, "**", "*_1_*.shp"), recursive=True):
+        for state in state_list:
+            if state in osm_file_path.split(os.sep)[-1]:
+                processed_state_set.add(state)
+
+    print("processed state : {}".format(processed_state_set))
+    if len(processed_state_set) == 0:
+        return state_list[0]
+    else:
+        idx_in_state_list = [state_list.index(x) for x in list(processed_state_set)]
+        idx_max = max(idx_in_state_list)
+        return state_list[idx_max]
+
+
 def _reorganize_shapefiles(map_dict, organized_data_folder_path, unzipped_folder_path):
     """reorganize downloaded shapefiles to build a local database of Geofabrik shapefiles in designated folder path.
     The file system follows the structure in the user-specified label hierarchy.
@@ -226,7 +244,9 @@ def _reorganize_shapefiles(map_dict, organized_data_folder_path, unzipped_folder
     """
 
     print("======================================================================================================")
-    print("Start reorganizing shapefiles into label map structure (may takes hours)")
+    print("Start reorganizing shapefiles into label map structure ")
+    print(
+        "(The whole process may takes several hours. You may stop at any time and continue later by setting update_shapefiles = False)")
 
     start_time = time.time()
 
@@ -238,13 +258,20 @@ def _reorganize_shapefiles(map_dict, organized_data_folder_path, unzipped_folder
         label_count_dict[layer] = {"none": 0, "labeled": 0,
                                    "included": 0}  # statistics of OSM POI labeling and inclusion in the label map.
 
+    # continue with the last state that the program stops at in the last run
+    state_last_run = _determine_state_in_last_run(organized_data_folder_path)
+
     start = 0
     for state in tqdm(state_list):
+        print("")
         print(state)
-        if state == "new jersey":
+
+        if state == state_last_run:
             start = 1
         if start == 0:
+            print("Already processed")
             continue
+
         # start_state = time.time()
         state_folder_path = os.path.join(unzipped_folder_path, state)
         for category in ["point", "polygon"]:
@@ -301,10 +328,12 @@ def _reorganize_shapefiles(map_dict, organized_data_folder_path, unzipped_folder
         # end_state = time.time()
         # print(f"Runtime for {state} is {end_state - start_state}")
 
-    _get_poi_inclusion_stats(label_count_dict)
+    if state_last_run == state_list[0]:  # generate the stats only when reprocess all states
+        _get_poi_inclusion_stats(label_count_dict)
 
     end_time = time.time()
-    print("End:  total runtime is {} min".format((end_time - start_time) / 60))
+    print("End:  all state shapefiles have been extracted and reorganized.")
+    print("Total runtime is {} min".format((end_time - start_time) / 60))
     print("")
     return
 
@@ -319,10 +348,10 @@ def _rearrange_shapefiles(organized_data_folder_path, combined_data_folder_path)
     """
 
     print("======================================================================================================")
-    print("Start rearrange shapefiles (last step, may takes hours)")
+    print("Start rearrange shapefiles (last step, this process may take about 3 hours)")
     start_time = time.time()
     start = 0
-    for lvl1 in os.listdir(organized_data_folder_path):
+    for lvl1 in tqdm(os.listdir(organized_data_folder_path)):
         print(lvl1)
         lvl1_path = os.path.join(organized_data_folder_path, lvl1)
         for lvl2 in os.listdir(lvl1_path):
@@ -374,7 +403,7 @@ def _rearrange_shapefiles(organized_data_folder_path, combined_data_folder_path)
                         df_polygon.to_file(df_polygon_path)
 
     end_time = time.time()
-    print(f"Runtime of the program is {end_time - start_time}")
+    print("Runtime of the program is {} min".format((end_time - start_time) / 60))
 
 
 def build(database_folder_path):
@@ -391,6 +420,16 @@ def build(database_folder_path):
     unzipped_folder_path = os.path.join(database_folder_path, "unzipped")
     organized_data_folder_path = os.path.join(database_folder_path, "organized_landmarks")
     combined_data_folder_path = os.path.join(database_folder_path, "organized_landmarks_combined")
+
+    if update_shapefiles:  # delete all databases
+        if os.path.exists(download_folder_path):
+            shutil.rmtree(download_folder_path)
+        if os.path.exists(unzipped_folder_path):
+            shutil.rmtree(unzipped_folder_path)
+        if os.path.exists(organized_data_folder_path):
+            shutil.rmtree(organized_data_folder_path)
+        if os.path.exists(combined_data_folder_path):
+            shutil.rmtree(combined_data_folder_path)
 
     _download_and_unzip(download_folder_path, unzipped_folder_path)
     map_dict = _parse_label_map()
