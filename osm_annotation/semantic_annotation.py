@@ -7,15 +7,30 @@ import fiona
 from shapely.geometry.polygon import Polygon
 from gps2space import geodf, dist
 import geopandas as gpd
+from tqdm import tqdm
 
 """
-This script uses the GPS2space package (https://gps2space.readthedocs.io/en/latest/)
+The SemanticAnnotator class aims to annotate location data using geofabrik database created by geofabrik_database.py. 
+
+There are three annotation methods:
+    1. annotate_single_point(lat, lon): annotate single point with semantic labels from OpenStreetMap database.
+        - pro: return distances to all POI types 
+        - con: time-consuming (~2 hours/query). Method 3 is recommended for batch of points. 
+    2. annotate_single_shape(lat_list, lon_list): annotate single shape (e.g., bounding box, polygon) with semantic labels from OpenStreetMap database. 
+        - pro: most accurate method
+        - con: need a set of points define the query shape
+    3. annotate_batch_points(dataframe, latitude_colname, longitude_colname): annotate a batch of points (usually centroids of places) with semantic labels from OpenStreetMap database.
+        - pro: fastest method. Fit for annotating many centroids of places simultaneously. 
+        - con: just return the label of the nearest POI and the distance.   
+    
+This script uses the geodf and dist functions from the GPS2space package (https://gps2space.readthedocs.io/en/latest/).
+    
 """
 
 
 class SemanticAnnotator:
-    def __init__(self, geofabrik_combined_folder_path):
-        self.geofabrik_combined_folder_path = geofabrik_combined_folder_path
+    def __init__(self, database_folder_path):
+        self.geofabrik_combined_folder_path = os.path.join(database_folder_path, "organized_landmarks_combined")
 
     def _get_shapely_poly(self, lat_list, lon_list):
         cluster_poly = Polygon([(x, y) for x, y in zip(lon_list, lat_list)])  # list of (longitude, latitude)
@@ -34,18 +49,17 @@ class SemanticAnnotator:
                 min_distance: the distance from the query point to the matched POI, in meters
                 distances_to_pois: distance to other types of POIs
         """
-        cluster_poly, poly_raw = self._get_shapely_poly([lat], [lon])
 
         osm_label_list = []
         distance_list = []
 
-        df_centroid_point = pd.DataFrame(list(cluster_poly.centroid.coords))
-        df_centroid_point.columns = ['longitude', 'latitude']
+        centroid = [[lon, lat]]
+        df_centroid_point = pd.DataFrame(data=centroid, columns=['longitude', 'latitude'])
         cluster_centroid_point = geodf.df_to_gdf(df_centroid_point, x='longitude', y='latitude')
 
         # iterate through all level3 landmarks and find associated labels (lvl1, lvl2, lvl3)
 
-        for lvl1_label in os.listdir(self.geofabrik_combined_folder_path):
+        for lvl1_label in tqdm(os.listdir(self.geofabrik_combined_folder_path)):
             # print("Level 1 : "+lvl1_label)
             lvl1_path = self.geofabrik_combined_folder_path + os.sep + lvl1_label
             for lvl2_label in os.listdir(lvl1_path):
@@ -63,7 +77,7 @@ class SemanticAnnotator:
                         nearest_POI = dist.dist_to_point(cluster_centroid_point, gdf_landmark, proj=2163)
                         distance = list(nearest_POI['dist2point'])[0]
                         distance_list.append(distance)
-                        osm_label_list.append((lvl1_label, lvl2_label, lvl3_label))
+                        osm_label_list.append("{};{};{} (point)".format(lvl1_label, lvl2_label, lvl3_label))
 
                     finding_list_poly = list(glob(os.path.join(lvl3_path, "*_polygon.shp")))
                     if len(finding_list_poly) > 0:
@@ -76,7 +90,7 @@ class SemanticAnnotator:
                         nearest_POI = dist.dist_to_point(cluster_centroid_point, gdf_landmark, proj=2163)
                         distance = list(nearest_POI['dist2point'])[0]
                         distance_list.append(distance)
-                        osm_label_list.append((lvl1_label, lvl2_label, lvl3_label))
+                        osm_label_list.append("{};{};{} (polygon)".format(lvl1_label, lvl2_label, lvl3_label))
 
         min_idx = distance_list.index(min(distance_list))
         min_distance = min(distance_list)
@@ -84,7 +98,7 @@ class SemanticAnnotator:
 
         result_json = {"matched_labels": osm_label,
                        "min_distance": min_distance,
-                       "distances_to_pois": {"poi_categories": osm_label_list, "distances": distance_list}
+                       "distances_to_pois": dict(zip(osm_label_list, distance_list))
                        }
 
         return result_json
@@ -109,7 +123,7 @@ class SemanticAnnotator:
         if len(lat_list) == 0 or len(lon_list) == 0:
             return
 
-        cluster_poly, poly_raw = self._get_shapely_poly(lat_list, lon_list)
+        cluster_poly = self._get_shapely_poly(lat_list, lon_list)
 
         point_label_list = []
         poly_label_list = []
@@ -117,7 +131,7 @@ class SemanticAnnotator:
 
         # iterate through all level3 landmarks and find associated labels (lvl1, lvl2, lvl3)
 
-        for lvl1_label in os.listdir(self.geofabrik_combined_folder_path):
+        for lvl1_label in tqdm(os.listdir(self.geofabrik_combined_folder_path)):
             # print("Level 1 : "+lvl1_label)
             lvl1_path = self.geofabrik_combined_folder_path + os.sep + lvl1_label
             for lvl2_label in os.listdir(lvl1_path):
@@ -183,14 +197,14 @@ class SemanticAnnotator:
 
         # iterate through all level3 landmarks and find associated labels (lvl1, lvl2, lvl3)
 
-        for lvl1_label in os.listdir(self.geofabrik_combined_folder_path):
-            print("Level 1 : " + lvl1_label)
+        for lvl1_label in tqdm(os.listdir(self.geofabrik_combined_folder_path)):
+            # print("Level 1 : " + lvl1_label)
             lvl1_path = self.geofabrik_combined_folder_path + os.sep + lvl1_label
             for lvl2_label in os.listdir(lvl1_path):
-                print("  Level 2 : " + lvl2_label)
+                # print("  Level 2 : " + lvl2_label)
                 lvl2_path = lvl1_path + os.sep + lvl2_label
                 for lvl3_label in os.listdir(lvl2_path):
-                    print("    Level 3 : " + lvl3_label)
+                    # print("    Level 3 : " + lvl3_label)
                     lvl3_path = lvl2_path + os.sep + lvl3_label
 
                     finding_list_point = list(glob(os.path.join(lvl3_path, "*_point.shp")))

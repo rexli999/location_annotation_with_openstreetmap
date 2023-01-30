@@ -6,6 +6,7 @@ import requests
 import zipfile
 import shutil
 from tqdm import tqdm
+import pkg_resources
 
 import pandas as pd
 import geopandas as gpd
@@ -18,9 +19,9 @@ warnings.filterwarnings("ignore")
 global variables
 """
 # user settings
-update_shapefiles = False  # if True, redownload shapefiles from Geofabrik to update the current databases.
-# update_reorganize_shapefiles = False  # if True, redo the process of reorganizing shapefiles downloaded from Geofabrik.
-label_map_path = "./osm_label_hierarchy.csv"
+update_shapefiles = False # if True, redownload shapefiles from Geofabrik to update the current databases.
+label_map_path = pkg_resources.resource_filename('osm_annotation', 'label_map/osm_label_hierarchy.csv')
+# label_map_path = os.path.join(os.path.dirname(__file__), 'label_map/osm_label_hierarchy.csv')
 state_string = "alabama, alaska, arizona, arkansas, norcal, socal, colorado, connecticut, delaware, district of columbia, florida, georgia, hawaii, idaho, illinois, indiana, iowa, kansas, kentucky, louisiana, maine, maryland, massachusetts, michigan, minnesota, mississippi, missouri, montana, nebraska, nevada, new hampshire, new jersey, new mexico, new york, north carolina, north dakota, ohio, oklahoma, oregon, pennsylvania, puerto rico, rhode island, south carolina, south dakota, tennessee, texas, united states virgin islands, utah, vermont, virginia, washington, west virginia, wisconsin, wyoming"
 state_list = state_string.split(", ")
 
