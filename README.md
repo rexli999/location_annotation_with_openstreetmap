@@ -24,6 +24,9 @@ This package integrates the geodf and dist functions from the GPS2space package 
 - tqdm
 - Python >= 3.7
 
+## Demo
+A demo on how to use this package can be found in the [jupyter notebook](https://github.com/rexli999/location_annotation_with_openstreetmap/tree/main/osm_annotation/package_demo.ipynb).
+
 ## Intall package
 ```bash
 pip install osm_annotation
@@ -46,6 +49,7 @@ geofabrik_database.build(database_folder_path)
 semantic_annotator = SemanticAnnotator(database_folder_path)
 ```
 
+
 ### Example of Method 1
 ```python
 # coordinates of Fenway Park in Boston
@@ -53,6 +57,7 @@ centroid_latitude = 42.34653831212525
 centroid_longitude = -71.09724395926423
 semantic_annotator.annotate_single_point(centroid_latitude, centroid_longitude)
 ```
+
 Returned result is a json file with
 - matched_labels: semantic label matched with the query point
 - min_distance: the distance from the query point to the matched POI, in meters
@@ -68,6 +73,7 @@ Returned result is a json file with
 > ...
 > }
 
+
 ### Example of Method 2
 ```python
 # bounding box (NW corner,NE corner, SE corner, SW corner) of Museum of Fine Arts in Boston
@@ -75,6 +81,7 @@ lat_list = [42.33969558839377, 42.34039653732734, 42.339235761638996, 42.3384731
 lon_list = [-71.09563225696323, -71.09348529667446, -71.09270768730832, -71.0948470612041]
 semantic_annotator.annotate_single_shape(lat_list, lon_list)
 ```
+
 Returned result is a json file with
 - matched_labels: semantic labels matched with the query shape
 - point_labels: semantic labels of point POI matched with the query shape
@@ -97,6 +104,7 @@ Returned result is a json file with
   <shapely.geometry.polygon.Polygon at 0x2b8b25331690>]}
 
 
+
 ### Example of Method 3
 ```python
 # library, cafe, gym, and train station around the Northeastern University campus
@@ -107,7 +115,8 @@ locations = [[42.33833,-71.08795], # library
 location_dataframe = pd.DataFrame(data = locations, columns = ['latitude', 'longitude'])
 semantic_annotator.annotate_batch_points(dataframe = location_dataframe, latitude_colname = 'latitude', longitude_colname = 'longitude')
 ```
+
 Returned result is a dataframe with
 - matched_labels: semantic labels matched with the query points
 - min_distance: the distance from the query point to the matched POI, in meters
->
+![alt text](https://github.com/rexli999/location_annotation_with_openstreetmap/tree/main/osm_annotation/batch_results.png "batch result")

@@ -9,7 +9,7 @@ with open(path.join(this_directory, 'README.md'), encoding='utf-8') as f:
 
 setuptools.setup(
     name='osm_annotation',
-    version="0.1.3",
+    version="0.1.4",
     description='An easy-to-use Python package that annotate location data with semantic labels from OpenStreetMap',
     url='https://github.com/rexli999/location_annotation_with_openstreetmap',
     long_description=long_description,
