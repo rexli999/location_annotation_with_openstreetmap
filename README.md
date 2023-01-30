@@ -3,17 +3,16 @@ Easy-to-use python package for annotating location data with OpenStreetMap Point
 
 #### Two general steps
 **1. Download and create a geofabrik POI database in local system**  
-**2. Annotate location data using the POI database, with three method options:**
-
-   [Method 1](#Example-of-Method-1) **annotate_single_point(lat, lon)**: annotate single point with semantic labels from OpenStreetMap database.  
-      - pro: return distances to all POI types  
-      - con: time-consuming (~3 hours/point). Method 3 is recommended for batch of points.  
-   [Method 2](#Example-of-Method-2) **annotate_single_shape(lat_list, lon_list)**: annotate single shape (e.g., bounding box, polygon) with semantic labels from OpenStreetMap database.  
-      - pro: **most accurate method** (~30 min/shape)
-      - con: need a set of points define the query shape 
-   [Method 3](#Example-of-Method-3) **annotate_batch_points(dataframe, latitude_colname, longitude_colname)**: annotate a batch of points (usually centroids of places) with semantic labels from OpenStreetMap database. 
-      - pro: **fastest method**. Fit for annotating many centroids of places simultaneously.  
-      - con: just return the label of the nearest POI and the distance.    
+**2. Annotate location data using the POI database, with three method options:**  
+	[Method 1](#Example-of-Method-1) **annotate_single_point(lat, lon)**: annotate single point with semantic labels from OpenStreetMap database.  
+		- pro: return distances to all POI types  
+		- con: time-consuming (~3 hours/point). Method 3 is recommended for batch of points.  
+	[Method 2](#Example-of-Method-2) **annotate_single_shape(lat_list, lon_list)**: annotate single shape (e.g., bounding box, polygon) with semantic labels from OpenStreetMap database.  
+		- pro: **most accurate method** (~30 min/shape)
+		- con: need a set of points define the query shape 
+	[Method 3](#Example-of-Method-3) **annotate_batch_points(dataframe, latitude_colname, longitude_colname)**: annotate a batch of points (usually centroids of places) with semantic labels from OpenStreetMap database. 
+   		- pro: **fastest method**. Fit for annotating many centroids of places simultaneously.  
+		- con: just return the label of the nearest POI and the distance.  
     
 This package integrates the geodf and dist functions from the GPS2space package (https://gps2space.readthedocs.io/en/latest/). 
 
