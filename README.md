@@ -1,11 +1,20 @@
+## *This repo has been moved to [Bitbucket](https://bitbucket.org/mhealthresearchgroup/osm_annotation/src/main/).  
+
 # location_annotation_with_openstreetmap
-This is an easy-to-use Python package for annotating location data with OpenStreetMap Point-of-interest tags. It provides a solution for researchers to adding additional layer of context information to location data at large scale in an automatic way. For example, the input can be pairs of coordinates (lat, lon), and the output are types of places of the input locations, such as "gym", "restaurant", "university", "office", etc. Annotation using this package incurs no cost when this package downloads and uses free POI data from [Geofabrik](https://www.geofabrik.de/) that reflect daily changes from [OpenStreetMap](https://en.wikipedia.org/wiki/OpenStreetMap). For questions about this package, please leave an issue or contact li.jix@northeastern.edu .
+This is an easy-to-use Python package for annotating location data with OpenStreetMap Point-of-interest tags. It provides a solution for researchers to adding additional layer of context information to location data at large scale in an automatic way. For example, the input can be pairs of coordinates (lat, lon), and the output are types of places of the input locations, such as "gym", "restaurant", "university", "office", etc. Annotation using this package incurs no cost when this package downloads and uses free POI data from [Geofabrik](https://www.geofabrik.de/) that reflect daily changes from [OpenStreetMap](https://en.wikipedia.org/wiki/OpenStreetMap). For questions about this package, please leave an [issue](https://bitbucket.org/mhealthresearchgroup/osm_annotation/issues?status=new&status=open) or contact the [author](mailto:li.jix@northeastern.edu).
+
+### Author and Credits
+Jixin Li, mHealth research group@Northeastern University  
+
+This package integrates the geodf and dist functions from the GPS2space package (https://gps2space.readthedocs.io/en/latest/).  
+
+A paper is in submission. If you use this package, please cite it as below.  
+> Li, Jixin. (2023). osm_annotation (version 0.1.8) [Python package]. https://bitbucket.org/mhealthresearchgroup/osm_annotation/src/main/
+
 
 ### Two general steps
 **1. Download and create a geofabrik POI database in local system**  
 **2. Annotate location data using the POI database**  
-    
-This package integrates the geodf and dist functions from the GPS2space package (https://gps2space.readthedocs.io/en/latest/). 
 
 ## Dependencies
 - geopandas
